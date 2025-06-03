@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+
 	"github.com/Dorantes98/go-todo-cli/tasks"
 )
 
@@ -10,11 +11,9 @@ func main() {
 	for i, arg := range os.Args { // Print out the args
 		fmt.Printf("Arg %d: %s\n", i, arg)
 	}
-	
-	fmt.Println("\nTodo List:")
 
 	if os.Args[1] == "add" {
-		if len(os.Args) < 3 {		// Checks to make sure the user inputed the correct number of Args
+		if len(os.Args) < 3 { // Checks to make sure the user inputed the correct number of Args
 			fmt.Printf("Error: missing task description. ")
 			return // Early return to avoid crashes
 		}
@@ -25,7 +24,7 @@ func main() {
 		err := tasks.AddTasks(desc)
 		if err != nil {
 			fmt.Println("Error:", err)
-		} 
+		}
 	}
 
 	if os.Args[1] == "list" {

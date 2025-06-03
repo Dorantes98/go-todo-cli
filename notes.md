@@ -42,7 +42,20 @@ if os.Args[1] == "add" {}
 ```
 - This checks if the first command-line argument is "add". If it is, the code inside the curly braces will be executed.
 
-
+```go
+file, err := os.OpenFile("tasks.csv", os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+```
+- This line opens a file named "tasks.csv" for appending data. If the file does not exist, it will be created. The `0644` sets the file permissions.
+  - `0644` means:
+    - Owner can read and write (6)
+    - Group can read (4)
+    - Others can read (4)
+- `os.OpenFile` returns a file pointer and an error. If the file is opened successfully, `err` will be `nil`.
+- If there is an error opening the file, `err` will contain the error information.
+- `os.O_APPEND` means that data will be written at the end of the file.
+- `os.O_CREATE` means that if the file does not exist, it will be created. 
+- `os.O_WRONLY` means that the file will be opened for writing only.
+- `os.O_RDWR` would mean the file is opened for reading and writing, but in this case, we only want to write to it.
 
 # Commit messages
 ## Common Prefix Types:
