@@ -1,11 +1,11 @@
 package tasks
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
 	"os"
 	"strconv"
+	"text/tabwriter"
 	"time"
 )
 
@@ -73,18 +73,36 @@ func ListTasks() error {
 	}
 	defer file.Close()
 
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return fmt.Errorf("Error reading CSV: %w", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tDescription\tCreated\tDone")
+
 	fmt.Println("\nTodo List:")
 
-	scanner := bufio.NewScanner(file)
+	for i := 1; i < len(records); i++ {
+		row := records[i]
 
-	for i := 1; scanner.Scan(); i++ {
-		line := scanner.Text()
-		fmt.Printf("%d. %s\n", i, line)
-	}
+		id, _ := strconv.Atoi(row[0])
+		desc := row[1]
+		created, _ := time.Parse(time.RFC3339, row[2])
+		done, _ := strconv.ParseBool(row[3])
 
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading file: %w", err)
+		task := Task{
+			ID:          id,
+			Description: desc,
+			CreatedAt:   created,
+			IsComplete:  done,
+		}
+
+		elapsed := time.Since(task.CreatedAt).Round(time.Minute)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%v\n", task.ID, task.Description, elapsed, task.IsComplete)
 	}
+	w.Flush()
 
 	return nil
 }
