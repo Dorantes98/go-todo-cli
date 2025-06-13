@@ -1,11 +1,11 @@
 package tasks
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
 	"os"
 	"strconv"
+	"text/tabwriter"
 	"time"
 )
 
@@ -73,18 +73,86 @@ func ListTasks() error {
 	}
 	defer file.Close()
 
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return fmt.Errorf("Error reading CSV: %w", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tDescription\tCreated\tDone")
+
 	fmt.Println("\nTodo List:")
 
-	scanner := bufio.NewScanner(file)
+	for i := 1; i < len(records); i++ {
+		row := records[i]
 
-	for i := 1; scanner.Scan(); i++ {
-		line := scanner.Text()
-		fmt.Printf("%d. %s\n", i, line)
+		id, _ := strconv.Atoi(row[0])
+		desc := row[1]
+		created, _ := time.Parse(time.RFC3339, row[2])
+		done, _ := strconv.ParseBool(row[3])
+
+		task := Task{
+			ID:          id,
+			Description: desc,
+			CreatedAt:   created,
+			IsComplete:  done,
+		}
+
+		elapsed := time.Since(task.CreatedAt).Round(time.Minute)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%v\n", task.ID, task.Description, elapsed, task.IsComplete)
+	}
+	w.Flush()
+
+	return nil
+}
+
+func CompleteTask(targetID int) error {
+	file, err := os.OpenFile("tasks.csv", os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("Error opening file: %w", err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return fmt.Errorf("Error reading CSV: %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading file: %w", err)
+	found := false
+	for i := 1; i < len(records); i++ {
+		if len(records[i]) < 4 {
+			continue // Skip malformed records
+		}
+
+		id, _ := strconv.Atoi(records[i][0])
+		if id == targetID {
+			fmt.Println("Marking task complete:", records[i])
+			records[i][3] = "true"
+			found = true
+			break
+		}
 	}
 
+	if !found {
+		return fmt.Errorf("Task with ID %d not found", targetID)
+	}
+
+	// Write the updated records back to the file
+	file.Seek(0, 0)
+	err = file.Truncate(0)
+	if err != nil {
+		return fmt.Errorf("Failed to truncate file: %w", err)
+	}
+
+	writer := csv.NewWriter(file)
+	writer.WriteAll(records)
+	writer.Flush() // flush the buffer to disk
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("Failed to flush writer: %w", err)
+	}
+
+	writer.Flush()
 	return nil
 }
